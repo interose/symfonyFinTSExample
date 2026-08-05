@@ -1,0 +1,15 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Account Setup Step 1{% endblock %}
+
+{% block body %}
+    {% if tanRequired %}
+        {% include 'account/_tanChallenge.html.twig' %}
+    {% else %}
+        {{ form_start(form) }}
+            {{ form_errors(form) }}
+            {{ form_row(form.subaccounts) }}
+            <button type="submit">Save</button>
+        {{ form_end(form) }}
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Account Statements{% endblock %}
+
+{% block body %}
+    {% if tanRequired %}
+        {% include 'account/_tanChallenge.html.twig' %}
+    {% else %}
+        <table>
+        {% for statement in statements %}
+            <tr>
+                <td>{{ statement.name }}</td>
+                <td>{{ statement.accountNumber }}</td>
+            </tr>
+        {% endfor %}
+        </table>
+    {% endif %}
+{% endblock %}

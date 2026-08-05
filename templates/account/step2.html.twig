@@ -1,0 +1,21 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Account Setup Step 2{% endblock %}
+
+{% block body %}
+<div
+    data-controller="account-setup"
+    data-account-setup-url-value="{{ path('app_account_fetch_tanmedia', {'id': account.id}) }}"
+>
+
+    {{ form_start(form, {'attr': {'data-account-setup-target': 'form'}}) }}
+        {{ form_errors(form) }}
+
+        {{ form_row(form.tanMechanism, {'attr': {'data-account-setup-target': 'tanModeSelect', 'data-action': 'account-setup#fetchTanMedia'}}) }}
+        {{ form_row(form.tanMediaName, {'attr': {'data-account-setup-target': 'tanMediaSelect'}}) }}
+        {{ form_rest(form) }}
+
+        <button type="submit">Next</button>
+    {{ form_end(form) }}
+</div>
+{% endblock %}

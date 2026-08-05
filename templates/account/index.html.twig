@@ -1,0 +1,36 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Account Index{% endblock %}
+
+{% block body %}
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}
+            <div class="alert alert-{{ type }}">
+                {{ message|raw }}
+            </div>
+        {% endfor %}
+    {% endfor %}
+
+    <table>
+        <thead>
+            <tr>
+                <td>#</td>
+                <td>Name</td>
+                <td>BIC</td>
+                <td>Bank code</td>
+                <td>HBCI URL</td>
+                <td>Actions</td>
+            </tr>
+        </thead>
+    {% for account in accounts %}
+        <tr>
+            <td>{{ account.id }}</td>
+            <td>{{ account.name }}</td>
+            <td>{{ account.bic }}</td>
+            <td>{{ account.bankCode }}</td>
+            <td>{{ account.url }}</td>
+            <td><a data-turbo-prefetch="false" href="{{ path('app_account_fetch_statements', {'id': account.id}) }}">Get Statements (5d)</a></td>
+        </tr>
+    {% endfor %}
+    </table>
+{% endblock %}

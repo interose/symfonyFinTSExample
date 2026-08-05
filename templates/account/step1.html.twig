@@ -1,0 +1,19 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Account Setup Step 1{% endblock %}
+
+{% block body %}
+    {{ form_start(form) }}
+        {{ form_errors(form) }}
+
+        {{ form_row(form.name) }}
+        {{ form_row(form.bic) }}
+        {{ form_row(form.bankCode) }}
+        {{ form_row(form.url) }}
+        {{ form_row(form.username) }}
+        {{ form_row(form.password) }}
+        {{ form_rest(form) }}
+
+        <button type="submit">Next</button>
+    {{ form_end(form) }}
+{% endblock %}

@@ -1,0 +1,16 @@
+<div
+    data-controller="tan-poll"
+    data-tan-poll-url-value="{{ path('app_account_tan_poll', {id: account.id}) }}"
+    data-tan-poll-allows-automated-polling-value="{{ challenge.allowsAutomatedPolling ? '1' : '' }}"
+    data-tan-poll-first-delay-value="{{ challenge.firstDecoupledCheckDelaySeconds }}"
+    data-tan-poll-periodic-delay-value="{{ challenge.periodicDecoupledCheckDelaySeconds }}"
+    data-tan-poll-max-checks-value="{{ challenge.maxDecoupledChecks }}"
+>
+    <p>{{ challenge.message|nl2br }}</p>
+    {% if challenge.tanMediumName %}<p>TAN medium: {{ challenge.tanMediumName }}</p>{% endif %}
+
+    <p data-tan-poll-target="status">Waiting for confirmation on your phone…</p>
+    <button type="button" hidden data-action="tan-poll#manualCheck" data-tan-poll-target="manualButton">
+        I've confirmed — check now
+    </button>
+</div>
