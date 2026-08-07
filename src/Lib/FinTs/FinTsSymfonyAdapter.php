@@ -4,12 +4,15 @@ namespace App\Lib\FinTs;
 
 use App\Entity\Account;
 use App\Service\EncryptionService;
+use Fhp\Action\GetDepotAufstellung;
 use Fhp\Action\GetSEPAAccounts;
 use Fhp\Action\GetStatementOfAccount;
 use Fhp\BaseAction;
 use Fhp\FinTs;
+use Fhp\Model\NoPsd2TanMode;
 use Fhp\Model\SEPAAccount;
 use Fhp\Model\StatementOfAccount\Transaction;
+use Fhp\Model\StatementOfHoldings\Holding;
 use Fhp\Model\TanMedium;
 use Fhp\Model\TanMode;
 use Fhp\Protocol\ServerException;
@@ -49,38 +52,60 @@ final class FinTsSymfonyAdapter
      *
      * @throws TanRequiredException
      */
-    public function getStatements(Account $account, \DateTime $from, \DateTime $to): array
+    public function getStatementsOfAccount(Account $account, \DateTime $from, \DateTime $to): array
     {
         $this->clearPendingState($account);
 
         $finTs = $this->buildFints($account);
-        $this->login($finTs, $account, FinTsOperation::Statements, [
+        $this->login($finTs, $account, FinTsOperation::StatementsOfAccount, [
             'from' => $from->format('c'),
             'to' => $to->format('c'),
         ]);
 
-        return $this->fetchStatements($finTs, $account, $from, $to);
+        return $this->fetchStatementsOfAccount($finTs, $account, $from, $to);
     }
+
+    /**
+     * @throws TanRequiredException
+     */
+    public function getStatementsOfHolding(Account $account): array
+    {
+        $this->clearPendingState($account);
+
+        $finTs = $this->buildFints($account);
+        $this->login($finTs, $account, FinTsOperation::StatementsOfHolding, []);
+
+        return $this->fetchStatementsOfHolding($finTs, $account);
+    }
+
 
     /**
      * @return TanMode[]
      *
      * @throws \Fhp\CurlException
-     * @throws \Fhp\Protocol\ServerException
+     * @throws ServerException
      */
     public function getTanModes(Account $account): array
     {
         $this->clearPendingState($account);
         $finTs = $this->buildFints($account);
 
-        return $finTs->getTanModes();
+        if ('50010517' == trim($account->getBankCode())) {
+            $tanModes = [
+                new NoPsd2TanMode(),
+            ];
+        } else {
+            $tanModes = $finTs->getTanModes();
+        }
+
+        return $tanModes;
     }
 
     /**
      * @return TanMedium[]
      *
      * @throws \Fhp\CurlException
-     * @throws \Fhp\Protocol\ServerException
+     * @throws ServerException
      */
     public function getTanMedia(Account $account, int $tanMode): array
     {
@@ -93,7 +118,7 @@ final class FinTsSymfonyAdapter
     /**
      * The one generic endpoint every TAN confirmation screen polls.
      *
-     * @throws \LogicException if there's no pending confirmation for this account
+     * @throws \LogicException                    if there's no pending confirmation for this account
      * @throws ServerException|\Fhp\CurlException
      */
     public function checkPending(Account $account): bool
@@ -114,6 +139,7 @@ final class FinTsSymfonyAdapter
             // Still waiting — not done yet, so still serializable. Re-persist to
             // capture the dialog's advanced state for the next poll.
             $this->savePendingDialog($account, new FinTsPendingDialog($finTs->persist(), serialize($action)));
+
             return false;
         }
 
@@ -127,9 +153,9 @@ final class FinTsSymfonyAdapter
                     ? $action->getAccounts()
                     : $this->fetchSubaccounts($finTs, $account),
 
-                FinTsOperation::Statements => $action instanceof GetStatementOfAccount
+                FinTsOperation::StatementsOfAccount => $action instanceof GetStatementOfAccount
                     ? $this->flattenStatement($action)
-                    : $this->fetchStatements(
+                    : $this->fetchStatementsOfAccount(
                         $finTs,
                         $account,
                         new \DateTime($opState->operationArgs['from']),
@@ -169,19 +195,6 @@ final class FinTsSymfonyAdapter
     // ------------------------------------------------------------------
     // Internals
     // ------------------------------------------------------------------
-    private function replayAfterLogin(FinTs $finTs, Account $account, FinTsPendingOperation $opState): array
-    {
-        return match ($opState->operation) {
-            FinTsOperation::Subaccounts => $this->fetchSubaccounts($finTs, $account),
-            FinTsOperation::Statements => $this->fetchStatements(
-                $finTs,
-                $account,
-                new \DateTime($opState->operationArgs['from']),
-                new \DateTime($opState->operationArgs['to']),
-            ),
-        };
-    }
-
     /**
      * @throws TanRequiredException
      */
@@ -218,26 +231,44 @@ final class FinTsSymfonyAdapter
      *
      * @throws TanRequiredException
      */
-    private function fetchStatements(FinTs $finTs, Account $account, \DateTime $from, \DateTime $to): array
+    private function fetchStatementsOfAccount(FinTs $finTs, Account $account, \DateTime $from, \DateTime $to): array
     {
         $action = GetStatementOfAccount::create($account->getSEPAAcount($this->encryptionService), $from, $to);
         $finTs->execute($action);
 
         if ($action->needsTan()) {
-            $this->preserveState($account, $finTs, $action, FinTsOperation::Statements, [
+            $this->preserveState($account, $finTs, $action, FinTsOperation::StatementsOfAccount, [
                 'from' => $from->format('c'),
                 'to' => $to->format('c'),
             ]);
             throw new TanRequiredException($this->buildChallenge($finTs, $action));
         }
 
-        return $this->flattenStatement($action);
+        return $this->flattenStatementOfAccount($action);
+    }
+
+    /**
+     * @return Holding[]
+     *
+     * @throws TanRequiredException
+     */
+    private function fetchStatementsOfHolding(FinTs $finTs, Account $account): array
+    {
+        $action = GetDepotAufstellung::create($account->getSEPAAcount($this->encryptionService));
+        $finTs->execute($action);
+
+        if ($action->needsTan()) {
+            $this->preserveState($account, $finTs, $action, FinTsOperation::StatementsOfHolding, []);
+            throw new TanRequiredException($this->buildChallenge($finTs, $action));
+        }
+
+        return $this->flattenStatementOfHolding($action);
     }
 
     /**
      * @return Transaction[]
      */
-    private function flattenStatement(GetStatementOfAccount $action): array
+    private function flattenStatementOfAccount(GetStatementOfAccount $action): array
     {
         $transactions = [];
 
@@ -246,6 +277,14 @@ final class FinTsSymfonyAdapter
         }
 
         return $transactions;
+    }
+
+    /**
+     * @return Holding[]
+     */
+    private function flattenStatementOfHolding(GetDepotAufstellung $action): array
+    {
+        return $action->getStatement()->getHoldings();
     }
 
     private function buildChallenge(FinTs $finTs, BaseAction $action): FinTsTanChallenge

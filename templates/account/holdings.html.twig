@@ -1,0 +1,19 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Account Holdings{% endblock %}
+
+{% block body %}
+    {% if tanRequired %}
+        {% include 'account/_tanChallenge.html.twig' %}
+    {% else %}
+        <table>
+        {% for holding in holdings %}
+            <tr>
+                <td>{{ holding.name }}</td>
+                <td>{{ holding.wkn }}</td>
+                <td>{{ holding.ISIN }}</td>
+            </tr>
+        {% endfor %}
+        </table>
+    {% endif %}
+{% endblock %}

@@ -10,7 +10,6 @@ use App\Lib\AccountManager;
 use App\Lib\FinTs\FinTsOperation;
 use App\Lib\FinTs\FinTsSymfonyAdapter;
 use App\Lib\FinTs\TanRequiredException;
-use App\Repository\AccountRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -19,14 +18,6 @@ use Symfony\Component\Routing\Attribute\Route;
 
 final class AccountController extends AbstractController
 {
-    #[Route('/account', name: 'app_account_index')]
-    public function index(AccountRepository $repository): Response
-    {
-        return $this->render('account/index.html.twig', [
-            'accounts' => $repository->findAll(),
-        ]);
-    }
-
     #[Route('/account/step1', name: 'app_account_step1')]
     public function step1(Request $request, AccountManager $accountManager): Response
     {
@@ -108,7 +99,7 @@ final class AccountController extends AbstractController
 
             $this->addFlash('success', 'Account added!');
 
-            return $this->redirectToRoute('app_account_index');
+            return $this->redirectToRoute('app_index');
         }
 
         return $this->render('account/step3.html.twig', [
@@ -125,8 +116,8 @@ final class AccountController extends AbstractController
         $to = new \DateTime();
 
         try {
-            $statements = $finTsAdapter->consumeResult($account, FinTsOperation::Statements)
-                ?? $finTsAdapter->getStatements($account, $from, $to);
+            $statements = $finTsAdapter->consumeResult($account, FinTsOperation::StatementsOfAccount)
+                ?? $finTsAdapter->getStatementsOfAccount($account, $from, $to);
         } catch (TanRequiredException $e) {
             return $this->render('account/statements.html.twig', [
                 'tanRequired' => true,
@@ -140,6 +131,28 @@ final class AccountController extends AbstractController
             'tanRequired' => false,
             'account' => $account,
             'statements' => $statements,
+        ]);
+    }
+
+    #[Route('/account/{id}/fetch-holdings', name: 'app_account_fetch_holdings')]
+    public function fetchHoldings(Request $request, Account $account, FinTsSymfonyAdapter $finTsAdapter): Response
+    {
+        try {
+            $holdings = $finTsAdapter->consumeResult($account, FinTsOperation::StatementsOfHolding)
+                ?? $finTsAdapter->getStatementsOfHolding($account);
+        } catch (TanRequiredException $e) {
+            return $this->render('account/holdings.html.twig', [
+                'tanRequired' => true,
+                'account' => $account,
+                'challenge' => $e->getChallenge(),
+                'holdings' => [],
+            ]);
+        }
+
+        return $this->render('account/holdings.html.twig', [
+            'tanRequired' => false,
+            'account' => $account,
+            'holdings' => $holdings,
         ]);
     }
 

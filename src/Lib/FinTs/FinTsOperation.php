@@ -12,5 +12,6 @@ namespace App\Lib\FinTs;
 enum FinTsOperation: string
 {
     case Subaccounts = 'subaccounts';
-    case Statements = 'statements';
+    case StatementsOfAccount = 'statementsofaccount';
+    case StatementsOfHolding = 'statementsofholding';
 }
