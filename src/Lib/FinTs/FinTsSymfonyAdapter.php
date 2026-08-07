@@ -154,13 +154,17 @@ final class FinTsSymfonyAdapter
                     : $this->fetchSubaccounts($finTs, $account),
 
                 FinTsOperation::StatementsOfAccount => $action instanceof GetStatementOfAccount
-                    ? $this->flattenStatement($action)
+                    ? $this->flattenStatementOfAccount($action)
                     : $this->fetchStatementsOfAccount(
                         $finTs,
                         $account,
                         new \DateTime($opState->operationArgs['from']),
                         new \DateTime($opState->operationArgs['to']),
                     ),
+
+                FinTsOperation::StatementsOfHolding => $action instanceof GetDepotAufstellung
+                    ? $this->flattenStatementOfHolding($action)
+                    : $this->fetchStatementsOfHolding($finTs, $account),
             };
         } catch (TanRequiredException) {
             return false;
