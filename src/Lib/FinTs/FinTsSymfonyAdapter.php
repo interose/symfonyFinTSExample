@@ -3,9 +3,9 @@
 namespace App\Lib\FinTs;
 
 use App\Entity\Account;
+use App\Lib\FinTs\Action\GetSEPAAccountsWithCapabilities;
 use App\Service\EncryptionService;
 use Fhp\Action\GetDepotAufstellung;
-use Fhp\Action\GetSEPAAccounts;
 use Fhp\Action\GetStatementOfAccount;
 use Fhp\BaseAction;
 use Fhp\FinTs;
@@ -33,7 +33,7 @@ final class FinTsSymfonyAdapter
     }
 
     /**
-     * @return SEPAAccount[]
+     * @return Subaccount[]
      *
      * @throws TanRequiredException
      */
@@ -151,8 +151,8 @@ final class FinTsSymfonyAdapter
                 // on it directly and its result is already resolved on this exact
                 // object — no re-fetch needed. Otherwise the TAN was on login, and
                 // the business action hasn't run yet at all.
-                FinTsOperation::Subaccounts => $action instanceof GetSEPAAccounts
-                    ? $action->getAccounts()
+                FinTsOperation::Subaccounts => $action instanceof GetSEPAAccountsWithCapabilities
+                    ? $this->toSubaccounts($action)
                     : $this->fetchSubaccounts($finTs, $account),
 
                 FinTsOperation::StatementsOfAccount => $action instanceof GetStatementOfAccount
@@ -215,13 +215,13 @@ final class FinTsSymfonyAdapter
     }
 
     /**
-     * @return SEPAAccount[]
+     * @return Subaccount[]
      *
      * @throws TanRequiredException
      */
     private function fetchSubaccounts(FinTs $finTs, Account $account): array
     {
-        $action = GetSEPAAccounts::create();
+        $action = GetSEPAAccountsWithCapabilities::create();
         $finTs->execute($action);
 
         if ($action->needsTan()) {
@@ -229,7 +229,18 @@ final class FinTsSymfonyAdapter
             throw new TanRequiredException($this->buildChallenge($finTs, $action));
         }
 
-        return $action->getAccounts();
+        return $this->toSubaccounts($action);
+    }
+
+    /**
+     * @return Subaccount[]
+     */
+    private function toSubaccounts(GetSEPAAccountsWithCapabilities $action): array
+    {
+        return array_map(
+            static fn (SEPAAccount $sepaAccount) => new Subaccount($sepaAccount, $action->getCapabilities($sepaAccount)),
+            $action->getAccounts(),
+        );
     }
 
     /**

@@ -38,8 +38,12 @@
             <td>{{ account.bankCode }}</td>
             <td>{{ account.url }}</td>
             <td>
-                <a data-turbo-prefetch="false" href="{{ path('app_account_fetch_statements', {'id': account.id}) }}">Get Statements of Account(5d)</a>
-                <a data-turbo-prefetch="false" href="{{ path('app_account_fetch_holdings', {'id': account.id}) }}">Get Statement of Holdings</a>
+                {% if account.supportsStatementsOfAccount %}
+                    <a data-turbo-prefetch="false" href="{{ path('app_account_fetch_statements', {'id': account.id}) }}">Get Statements of Account(5d)</a>
+                {% endif %}
+                {% if account.supportsStatementsOfHolding %}
+                    <a data-turbo-prefetch="false" href="{{ path('app_account_fetch_holdings', {'id': account.id}) }}">Get Statement of Holdings</a>
+                {% endif %}
             </td>
         </tr>
     {% else %}

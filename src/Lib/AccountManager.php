@@ -3,9 +3,9 @@
 namespace App\Lib;
 
 use App\Entity\Account;
+use App\Lib\FinTs\Subaccount;
 use App\Service\EncryptionService;
 use Doctrine\ORM\EntityManagerInterface;
-use Fhp\Model\SEPAAccount;
 
 final class AccountManager
 {
@@ -41,10 +41,11 @@ final class AccountManager
         $this->entityManager->flush();
     }
 
-    public function finalize(SEPAAccount $data, Account $account): void
+    public function finalize(Subaccount $subaccount, Account $account): void
     {
-        $account->setIban($data->getIban(), $this->encryptionService);
-        $account->setAccountNumber($data->getAccountNumber(), $this->encryptionService);
+        $account->setIban($subaccount->account->getIban(), $this->encryptionService);
+        $account->setAccountNumber($subaccount->account->getAccountNumber(), $this->encryptionService);
+        $account->setCapabilities($subaccount->capabilities);
 
         $this->entityManager->persist($account);
         $this->entityManager->flush();

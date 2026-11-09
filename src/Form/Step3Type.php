@@ -2,7 +2,7 @@
 
 namespace App\Form;
 
-use Fhp\Model\SEPAAccount;
+use App\Lib\FinTs\Subaccount;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -18,8 +18,12 @@ class Step3Type extends AbstractType
             'label' => 'Please select',
             'choices' => $options['subaccounts'],
             'placeholder' => 'Please select',
-            'choice_label' => fn (SEPAAccount $account) => 'IBAN: '.$account->getIban(),
-            'choice_value' => fn (?SEPAAccount $account) => $account?->getIban(),
+            'choice_label' => static function (Subaccount $subaccount): string {
+                $type = $subaccount->capabilities->getAccountTypeLabel();
+
+                return 'IBAN: '.$subaccount->account->getIban().(null !== $type ? ' ('.$type.')' : '');
+            },
+            'choice_value' => fn (?Subaccount $subaccount) => $subaccount?->account->getIban(),
             'multiple' => false,
             'expanded' => false,
             'constraints' => [

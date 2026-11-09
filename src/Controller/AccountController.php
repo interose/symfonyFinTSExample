@@ -112,6 +112,12 @@ final class AccountController extends AbstractController
     #[Route('/account/{id}/fetch-statements', name: 'app_account_fetch_statements')]
     public function fetchStatements(Request $request, Account $account, FinTsSymfonyAdapter $finTsAdapter): Response
     {
+        if (!$account->supportsStatementsOfAccount()) {
+            $this->addFlash('warning', 'The bank does not allow statements of account for this account.');
+
+            return $this->redirectToRoute('app_index');
+        }
+
         $from = (new \DateTime())->modify('-5 days');
         $to = new \DateTime();
 
@@ -137,6 +143,12 @@ final class AccountController extends AbstractController
     #[Route('/account/{id}/fetch-holdings', name: 'app_account_fetch_holdings')]
     public function fetchHoldings(Request $request, Account $account, FinTsSymfonyAdapter $finTsAdapter): Response
     {
+        if (!$account->supportsStatementsOfHolding()) {
+            $this->addFlash('warning', 'The bank does not allow statements of holdings for this account.');
+
+            return $this->redirectToRoute('app_index');
+        }
+
         try {
             $holdings = $finTsAdapter->consumeResult($account, FinTsOperation::StatementsOfHolding)
                 ?? $finTsAdapter->getStatementsOfHolding($account);

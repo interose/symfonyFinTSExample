@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Lib\FinTs\AccountCapabilities;
 use App\Repository\AccountRepository;
 use App\Service\EncryptionService;
 use Doctrine\ORM\Mapping as ORM;
@@ -44,6 +45,16 @@ class Account
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $accountNumber = null;
+
+    #[ORM\Column(options: ['default' => true])]
+    private bool $supportsStatementsOfAccount = true;
+
+    #[ORM\Column(options: ['default' => true])]
+    private bool $supportsStatementsOfHolding = true;
+
+    /** FinTS "Kontoart" as reported by the bank, see {@see \App\Lib\FinTs\AccountCapabilities}. */
+    #[ORM\Column(nullable: true)]
+    private ?int $accountType = null;
 
     public function getId(): ?int
     {
@@ -166,6 +177,30 @@ class Account
     public function setAccountNumber(string $plainAccountNumber, EncryptionService $crypto): static
     {
         $this->accountNumber = $crypto->encrypt($plainAccountNumber);
+
+        return $this;
+    }
+
+    public function supportsStatementsOfAccount(): bool
+    {
+        return $this->supportsStatementsOfAccount;
+    }
+
+    public function supportsStatementsOfHolding(): bool
+    {
+        return $this->supportsStatementsOfHolding;
+    }
+
+    public function getAccountType(): ?int
+    {
+        return $this->accountType;
+    }
+
+    public function setCapabilities(AccountCapabilities $capabilities): static
+    {
+        $this->supportsStatementsOfAccount = $capabilities->statementsOfAccount;
+        $this->supportsStatementsOfHolding = $capabilities->statementsOfHolding;
+        $this->accountType = $capabilities->accountType;
 
         return $this;
     }
