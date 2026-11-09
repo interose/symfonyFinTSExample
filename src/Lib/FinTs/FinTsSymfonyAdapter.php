@@ -66,6 +66,8 @@ final class FinTsSymfonyAdapter
     }
 
     /**
+     * @return Holding[]
+     *
      * @throws TanRequiredException
      */
     public function getStatementsOfHolding(Account $account): array
